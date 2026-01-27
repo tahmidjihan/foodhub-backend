@@ -2,3 +2,5 @@
 node_modules/
 dist/
 build/
+prisma/migrations/
+/generated/prisma
