@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client"
   output   = "../generated/prisma"
@@ -13,32 +7,7 @@ datasource db {
   provider = "postgresql"
 }
 
-enum Role {
-  Admin
-  Provider
-  User
-}
-
-model User {
-  id            String    @id @default(uuid())
-  email         String    @unique
-  name          String?
-  role          Role      @default(User)
-  password      String
-  meals         meal[]
-  orders        Order[]
-  cart          Cart[]
-  emailVerified Boolean   @default(false)
-  image         String?
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
-  sessions      Session[]
-  accounts      Account[]
-
-  @@map("user")
-}
-
-model meal {
+model Meal {
   id         String   @id @default(uuid())
   name       String
   price      Float
@@ -46,39 +15,55 @@ model meal {
   tags       String[]
   type       String
   providerId String
+  Cart       Cart[]
   provider   User     @relation(fields: [providerId], references: [id])
-  orders     Order[]
-  cart       Cart[]
+  orders     order[]
 }
 
-model Order {
+model order {
   id        String   @id @default(uuid())
-  userId    String
-  mealId    String
   quantity  Int
   total     Float
   status    String   @default("Pending")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
-  meal meal @relation(fields: [mealId], references: [id])
+  MealId    String
+  UserId    String
+  Meal      Meal     @relation(fields: [MealId], references: [id])
+  User      User     @relation(fields: [UserId], references: [id])
 }
 
 model Cart {
   id       String @id @default(uuid())
-  userId   String
-  mealId   String
+  UserId   String
+  MealId   String
   quantity Int
+  Meal     Meal   @relation(fields: [MealId], references: [id])
+  User     User   @relation(fields: [UserId], references: [id])
+}
 
-  user User @relation(fields: [userId], references: [id])
-  meal meal @relation(fields: [mealId], references: [id])
+model User {
+  id            String    @id
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  role          Role      @default(User)
+  cart          Cart[]
+  meals         Meal[]
+  accounts      Account[]
+  orders        order[]
+  sessions      Session[]
+
+  @@map("user")
 }
 
 model Session {
   id        String   @id
   expiresAt DateTime
-  token     String
+  token     String   @unique
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   ipAddress String?
@@ -86,7 +71,6 @@ model Session {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([token])
   @@index([userId])
   @@map("session")
 }
@@ -95,8 +79,6 @@ model Account {
   id                    String    @id
   accountId             String
   providerId            String
-  userId                String
-  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   accessToken           String?
   refreshToken          String?
   idToken               String?
@@ -106,6 +88,8 @@ model Account {
   password              String?
   createdAt             DateTime  @default(now())
   updatedAt             DateTime  @updatedAt
+  userId                String
+  user                  User      @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([userId])
   @@map("account")
@@ -121,4 +105,10 @@ model Verification {
 
   @@index([identifier])
   @@map("verification")
+}
+
+enum Role {
+  Admin
+  Provider
+  User
 }
