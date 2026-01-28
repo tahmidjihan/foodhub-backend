@@ -8,19 +8,17 @@ const app = express();
 // const router = express.Router();
 dotenv.config();
 
-app.use(cors());
+app.use(
+  cors({
+    origin: process.env.ORIGIN_URL,
+    credentials: true,
+  }),
+);
 app.use(express.json());
 
 const PORT = process.env.PORT || 8000;
-function consoleReq(
-  req: express.Request,
-  res: express.Response,
-  next: express.NextFunction,
-) {
-  console.log(req.body);
-  next();
-}
-app.all('/api/auth/{*any}', consoleReq, toNodeHandler(auth));
+
+app.all('/api/auth/{*any}', toNodeHandler(auth));
 app.get('/', (req, res) => {
   res.send('Hello, World!');
 });

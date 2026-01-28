@@ -1,10 +1,8 @@
 import express from 'express';
-import meals from './api/meals/index.js';
 
 const router = express.Router();
 router.get('/', (req, res) => {
-  res.send('API Root');
+  res.send('Cart Root');
 });
-router.use('/meals', meals);
 
 export default router;
