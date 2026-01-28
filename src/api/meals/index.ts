@@ -1,12 +1,11 @@
 import express from 'express';
+import controller from './controllers/meals.controller.js';
 
 const router = express.Router();
+
 router.get('/', (req, res) => {
   res.send('Meals API Root');
 });
-router.post('/', (req, res) => {
-  // Logic to add a new meal
-  res.send('New meal added');
-});
+router.post('/', controller.create);
 
 export default router;
