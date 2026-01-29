@@ -6,4 +6,6 @@ router.get('/', (req, res) => {
   res.send('Orders Root');
 });
 router.post('/', controller.create);
+router.get('/:id', controller.getOne);
+
 export default router;
