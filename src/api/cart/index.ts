@@ -5,5 +5,7 @@ router.get('/', (req, res) => {
   res.send('Cart Root');
 });
 router.post('/', controller.create);
+router.get('/', controller.getAll);
+router.delete('/:id', controller.deleteOne);
 
 export default router;

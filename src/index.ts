@@ -9,9 +9,9 @@ const router = express.Router();
 router.get('/', (req, res) => {
   res.send('API Root');
 });
-router.use('/meals', authorize, meals);
+router.use('/meals', meals);
 router.use('/orders', orders);
 router.use('/cart', cart);
-router.use('/provider', provider);
+router.use('/providers', authorize, provider);
 
 export default router;
