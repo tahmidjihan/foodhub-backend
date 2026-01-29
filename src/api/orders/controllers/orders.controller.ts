@@ -24,4 +24,12 @@ const getOne = async (req: express.Request, res: express.Response) => {
     res.status(500).json({ message: 'Error retrieving order', error });
   }
 };
-export default { create, getOne };
+const getAll = async (req: express.Request, res: express.Response) => {
+  try {
+    const orders = await prisma.order.findMany();
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving orders', error });
+  }
+};
+export default { create, getOne, getAll };
