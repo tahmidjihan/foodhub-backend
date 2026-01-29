@@ -1,17 +1,6 @@
 import express from 'express';
 import { prisma } from '../../../prisma.js';
 
-const create = async (req: express.Request, res: express.Response) => {
-  // Logic to create a new meal
-  const meal = req.body;
-  try {
-    // Example: Save meal to the database using Prisma
-    const newMeal = await prisma.meal.create({ data: meal });
-    res.status(201).json({ message: 'Meal created successfully', meal });
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating meal', error });
-  }
-};
 const getOne = async (req: express.Request, res: express.Response) => {
   const mealId = req.params.id as string;
   try {
@@ -25,28 +14,5 @@ const getOne = async (req: express.Request, res: express.Response) => {
     res.status(500).json({ message: 'Error retrieving meal', error });
   }
 };
-const updateOne = async (req: express.Request, res: express.Response) => {
-  const mealId = req.params.id as string;
-  const updatedData = req.body;
-  try {
-    const updatedMeal = await prisma.meal.update({
-      where: { id: mealId },
-      data: updatedData,
-    });
-    res
-      .status(200)
-      .json({ message: 'Meal updated successfully', meal: updatedMeal });
-  } catch (error) {
-    res.status(500).json({ message: 'Error updating meal', error });
-  }
-};
-const deleteOne = async (req: express.Request, res: express.Response) => {
-  const mealId = req.params.id as string;
-  try {
-    await prisma.meal.delete({ where: { id: mealId } });
-    res.status(200).json({ message: 'Meal deleted successfully' });
-  } catch (error) {
-    res.status(500).json({ message: 'Error deleting meal', error });
-  }
-};
-export default { create, getOne, updateOne, deleteOne };
+
+export default { getOne };

@@ -19,12 +19,17 @@ model Meal {
   provider   User     @relation(fields: [providerId], references: [id])
   orders     order[]
 }
-
+enum status {
+  Pending
+  InProgress
+  Completed
+  Cancelled
+}
 model order {
   id        String   @id @default(uuid())
   quantity  Int
   total     Float
-  status    String   @default("Pending")
+  status    status   @default(Pending)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
   MealId    String
