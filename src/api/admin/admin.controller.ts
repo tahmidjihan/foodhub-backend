@@ -6,10 +6,12 @@ function getUsers(req: express.Request, res: express.Response) {
     skip: string;
     take: string;
   };
-  const pagination = req.query.pagination as pagination;
-  if (!pagination || !pagination.skip || !pagination.take) {
-    pagination.skip = '1';
-    pagination.take = '10';
+  const pagination = {
+    skip: req.query.skip as string,
+    take: req.query.take as string,
+  };
+  if (!pagination) {
+    res.status(400).json({ message: 'Pagination parameters are required' });
     return;
   }
   prisma.user

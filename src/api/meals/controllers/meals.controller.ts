@@ -19,24 +19,27 @@ const getAll = (req: express.Request, res: express.Response) => {
     skip: string;
     take: string;
   };
-  const pagination = req.query.pagination as pagination;
-  if (!pagination || !pagination.skip || !pagination.take) {
-    pagination.skip = '1';
-    pagination.take = '10';
+  const pagination = {
+    skip: req.query.skip as string,
+    take: req.query.take as string,
+  };
+  if (!pagination) {
+    res.status(400).json({ message: 'Pagination parameters are required' });
     return;
   }
-  const providerId = req.user?.id;
+
   prisma.meal
     .findMany({
-      where: { providerId },
-      take: Number(pagination.take),
-      skip: (Number(pagination.skip) - 1) * 10,
+      where: {},
+      take: parseInt(pagination.take),
+      skip: parseInt(pagination.skip),
     })
     .then((meals) => {
       res.json(meals);
     })
     .catch((error) => {
       res.status(500).json({ message: 'Internal Server Error', error });
+      console.log(error);
     });
 };
 export default { getOne, getAll };
