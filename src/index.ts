@@ -15,7 +15,7 @@ router.get('/', (req, res) => {
 router.use('/meals', meals);
 router.use('/orders', orders);
 router.use('/cart', authorize, cart);
-router.use('/providers', authorize, authRole(['admin']), provider);
+router.use('/providers', provider);
 router.use('/admin', authorize, authRole(['admin']), admin);
 
 export default router;

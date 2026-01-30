@@ -6,6 +6,7 @@ const getOne = async (req: express.Request, res: express.Response) => {
   try {
     const provider = await prisma.user.findUnique({
       where: { id: providerId, role: 'Provider' },
+      include: { meals: true },
     });
     res.status(200).json(provider);
   } catch (error) {

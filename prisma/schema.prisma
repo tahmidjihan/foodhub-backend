@@ -13,6 +13,7 @@ model Meal {
   price      Float
   image      String
   tags       String[]
+  description  String @default("No description provided")
   type       String
   providerId String
   Cart       Cart[]
