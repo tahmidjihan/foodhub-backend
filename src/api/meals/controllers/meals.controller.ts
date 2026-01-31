@@ -14,7 +14,7 @@ const getOne = async (req: express.Request, res: express.Response) => {
     res.status(500).json({ message: 'Error retrieving meal', error });
   }
 };
-const getAll = (req: express.Request, res: express.Response) => {
+const getAll = async (req: express.Request, res: express.Response) => {
   type pagination = {
     skip: string;
     take: string;
@@ -28,7 +28,7 @@ const getAll = (req: express.Request, res: express.Response) => {
     return;
   }
 
-  prisma.meal
+  await prisma.meal
     .findMany({
       where: {},
       take: parseInt(pagination.take),
@@ -36,10 +36,22 @@ const getAll = (req: express.Request, res: express.Response) => {
     })
     .then((meals) => {
       res.json(meals);
+      console.log(meals);
     })
     .catch((error) => {
       res.status(500).json({ message: 'Internal Server Error', error });
       console.log(error);
     });
 };
-export default { getOne, getAll };
+async function getByProvider(req: express.Request, res: express.Response) {
+  const id = req.params.id;
+  await prisma.meal
+    .findMany({ where: { providerId: id as string } })
+    .then((meals) => {
+      res.json(meals);
+    })
+    .catch((error) => {
+      res.status(500).json({ message: 'Internal Server Error', error });
+    });
+}
+export default { getOne, getAll, getByProvider };

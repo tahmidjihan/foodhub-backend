@@ -1,30 +1,20 @@
 import express from 'express';
 import { prisma } from '../../../prisma.js';
 const getAll = (req: express.Request, res: express.Response) => {
-  type pagination = {
-    skip: string;
-    take: string;
-  };
-  const pagination = {
-    skip: req.query.skip as string,
-    take: req.query.take as string,
-  };
-  if (!pagination) {
-    res.status(400).json({ message: 'Pagination parameters are required' });
-    return;
-  }
-  const providerId = req.user?.id;
+  const providerId = req.params.id as string;
+
+  console.log(req);
   prisma.meal
     .findMany({
-      where: { providerId },
-      take: Number(pagination.take),
-      skip: (Number(pagination.skip) - 1) * 10,
+      where: {},
     })
     .then((meals) => {
       res.json(meals);
+      console.log(meals);
     })
     .catch((error) => {
       res.status(500).json({ message: 'Internal Server Error', error });
+      console.log(error);
     });
 };
 const getOne = async (req: express.Request, res: express.Response) => {
@@ -53,6 +43,7 @@ const create = async (req: express.Request, res: express.Response) => {
     console.log(newMeal);
     res.status(201).json({ message: 'Meal created successfully', meal });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Error creating meal', error });
   }
 };

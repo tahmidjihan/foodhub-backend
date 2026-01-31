@@ -9,7 +9,10 @@ const router = express.Router();
 router.get('/:id', controller.getOne);
 router.get('/', controller.getAll);
 
-router.get('/orders/:id', authorize, authRole(['Provider']), orders);
-router.use('/meals', authorize, authRole(['Provider']), meals);
+router.get('/orders', authorize, authRole(['Provider']), orders.getAll);
+
+router.patch('/orders/:id', authorize, authRole(['Provider']), orders.patchOrder);
+
+router.use('/meals', authorize, meals);
 
 export default router;

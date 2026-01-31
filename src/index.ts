@@ -13,7 +13,7 @@ router.get('/', (req, res) => {
   res.send('API Root');
 });
 router.use('/meals', meals);
-router.use('/orders', orders);
+router.use('/orders', authorize, orders);
 router.use('/cart', authorize, cart);
 router.use('/providers', provider);
 router.use('/admin', authorize, authRole(['admin']), admin);
