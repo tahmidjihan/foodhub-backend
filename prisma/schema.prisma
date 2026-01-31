@@ -19,6 +19,7 @@ model Meal {
   Cart       Cart[]
   provider   User     @relation(fields: [providerId], references: [id])
   orders     order[]
+  reviews    review[]
 }
 enum status {
   Pending
@@ -48,7 +49,14 @@ model Cart {
   Meal     Meal   @relation(fields: [MealId], references: [id])
   User     User   @relation(fields: [UserId], references: [id])
 }
-
+model review {
+  id      String @id @default(uuid())
+  UserId  String
+  MealId  String
+  description String
+  Meal     Meal   @relation(fields: [MealId], references: [id])
+  User     User   @relation(fields: [UserId], references: [id])
+}
 model User {
   id            String    @id
   name          String
@@ -63,7 +71,7 @@ model User {
   accounts      Account[]
   orders        order[]
   sessions      Session[]
-
+  reviews       review[]
   @@map("user")
 }
 

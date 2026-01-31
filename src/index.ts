@@ -6,6 +6,7 @@ import provider from './api/provider/index.js';
 import authorize from './middlewares/authorize.js';
 import admin from './api/admin/index.js';
 import authRole from './middlewares/authRole.js';
+import review from './api/review/index.js';
 
 const router = express.Router();
 
@@ -15,6 +16,7 @@ router.get('/', (req, res) => {
 router.use('/meals', meals);
 router.use('/orders', authorize, orders);
 router.use('/cart', authorize, cart);
+router.use('review', authorize, review);
 router.use('/providers', provider);
 router.use('/admin', authorize, authRole(['admin']), admin);
 
