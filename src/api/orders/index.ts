@@ -5,8 +5,7 @@ import authorize from '../../middlewares/authorize.js'; // Import authorize midd
 const router = express.Router();
 
 router.post('/', controller.create);
-
-// New route for fetching orders for a specific provider
+router.get('/', authorize, controller.getUserOrders);
 router.get('/provider/:id', authorize, controller.getProviderOrders);
 
 export default router;

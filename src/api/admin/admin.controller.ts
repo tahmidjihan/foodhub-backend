@@ -2,23 +2,8 @@ import express from 'express';
 import { prisma } from '../../prisma.js';
 
 function getUsers(req: express.Request, res: express.Response) {
-  type pagination = {
-    skip: string;
-    take: string;
-  };
-  const pagination = {
-    skip: req.query.skip as string,
-    take: req.query.take as string,
-  };
-  if (!pagination) {
-    res.status(400).json({ message: 'Pagination parameters are required' });
-    return;
-  }
   prisma.user
-    .findMany({
-      take: Number(pagination.take),
-      skip: (Number(pagination.skip) - 1) * 10,
-    })
+    .findMany({})
     .then((users) => {
       res.status(200).json(users);
     })
@@ -49,5 +34,13 @@ const updateUser = async (req: express.Request, res: express.Response) => {
     res.status(500).json({ message: 'Error updating user', error });
   }
 };
+const getAllOrders = async (req: express.Request, res: express.Response) => {
+  try {
+    const orders = await prisma.order.findMany();
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving orders', error });
+  }
+};
 
-export default { getUsers, deleteUser, updateUser };
+export default { getUsers, deleteUser, updateUser, getAllOrders };

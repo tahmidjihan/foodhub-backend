@@ -33,6 +33,7 @@ const getAll = async (req: express.Request, res: express.Response) => {
       where: {},
       take: parseInt(pagination.take),
       skip: parseInt(pagination.skip),
+      include: { Category: true },
     })
     .then((meals) => {
       res.json(meals);

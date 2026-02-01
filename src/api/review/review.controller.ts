@@ -12,6 +12,7 @@ const create = async (req: express.Request, res: express.Response) => {
     });
     res.status(201).json({ message: 'Review created successfully', review });
   } catch (error) {
+    console.log(error);
     res.status(500).json({ message: 'Error creating review', error });
   }
 };
@@ -30,4 +31,4 @@ const getByProvider = async (req: express.Request, res: express.Response) => {
     });
 };
 
-export { create, getByProvider };
+export default { create, getByProvider };

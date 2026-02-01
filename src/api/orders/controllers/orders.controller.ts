@@ -15,7 +15,10 @@ const create = async (req: express.Request, res: express.Response) => {
 };
 
 // New function to get orders for a specific provider
-const getProviderOrders = async (req: express.Request, res: express.Response) => {
+const getProviderOrders = async (
+  req: express.Request,
+  res: express.Response,
+) => {
   const providerId = req.params.id as string; // Get provider ID from URL params
 
   try {
@@ -39,5 +42,16 @@ const getProviderOrders = async (req: express.Request, res: express.Response) =>
     res.status(500).json({ message: 'Error fetching provider orders', error });
   }
 };
-
-export default { create, getProviderOrders };
+const getUserOrders = async (req: express.Request, res: express.Response) => {
+  const userId = req.user?.id;
+  try {
+    const orders = await prisma.order.findMany({
+      where: { UserId: userId },
+      include: { Meal: true },
+    });
+    res.status(200).json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Error retrieving orders', error });
+  }
+};
+export default { create, getProviderOrders, getUserOrders };
