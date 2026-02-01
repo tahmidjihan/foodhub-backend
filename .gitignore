@@ -4,3 +4,5 @@ dist/
 build/
 prisma/migrations/
 /generated/prisma
+.env.local
+/.vercel
