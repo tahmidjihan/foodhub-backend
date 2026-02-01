@@ -6,3 +6,5 @@ prisma/migrations/
 /generated/prisma
 .env.local
 /.vercel
+.vercel
+.env*.local
