@@ -11,8 +11,15 @@ router.get('/', controller.getAll);
 
 router.get('/orders', authorize, authRole(['Provider']), orders.getAll);
 
-router.patch('/orders/:id', authorize, authRole(['Provider']), orders.patchOrder);
+router.patch(
+  '/orders/:id',
+  authorize,
+  authRole(['Provider']),
+  orders.patchOrder,
+);
 
 router.use('/meals', authorize, meals);
+
+router.post('/', controller.createOne);
 
 export default router;

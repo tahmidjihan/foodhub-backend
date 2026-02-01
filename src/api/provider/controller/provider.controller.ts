@@ -23,5 +23,15 @@ const getAll = async (req: express.Request, res: express.Response) => {
     res.status(500).json({ message: 'Error retrieving providers', error });
   }
 };
+const createOne = async (req: express.Request, res: express.Response) => {
+  const data = req.body;
+  try {
+    const provider = await prisma.providerProfile.create({ data });
+    res.status(201).json(provider);
+  } catch (error) {
+    console.log(error);
+    res.status(500).json({ message: 'Error creating provider', error });
+  }
+};
 
-export default { getOne, getAll };
+export default { getOne, getAll, createOne };
