@@ -32,7 +32,10 @@ export const auth = betterAuth({
     },
   },
   secretKeyBase: process.env.SECRET_KEY_BASE || '',
-  trustedOrigins: [process.env.ORIGIN_URL || ''],
+  trustedOrigins: [
+    'http://localhost:5000', // dev
+    'https://foodhub-frontend-sigma.vercel.app',
+  ],
   emailAndPassword: {
     enabled: true,
   },

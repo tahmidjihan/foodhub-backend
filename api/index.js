@@ -209,10 +209,30 @@ var auth = betterAuth({
         type: "string",
         defaultValue: "Customer"
       }
+    },
+    session: {
+      cookieCache: {
+        enabled: true,
+        maxAge: 5 * 60
+        // 5 minutes
+      }
+    },
+    advanced: {
+      cookiePrefix: "better-auth",
+      useSecureCookies: process.env.NODE_ENV === "production",
+      crossSubDomainCookies: {
+        enabled: false
+      },
+      disableCSRFCheck: true
+      // Allow requests without Origin header (Postman, mobile apps, etc.)
     }
   },
   secretKeyBase: process.env.SECRET_KEY_BASE || "",
-  trustedOrigins: [process.env.ORIGIN_URL || ""],
+  trustedOrigins: [
+    "http://localhost:5000",
+    // dev
+    "https://foodhub-frontend-sigma.vercel.app"
+  ],
   emailAndPassword: {
     enabled: true
   }
@@ -498,6 +518,7 @@ import express15 from "express";
 import "express";
 function getUsers(req, res) {
   prisma.user.findMany({}).then((users) => {
+    console.log(users);
     res.status(200).json(users);
   }).catch((error) => {
     res.status(500).json({ message: "Error retrieving users", error });
@@ -645,7 +666,7 @@ router9.use("/orders", authorize_default, orders_default);
 router9.use("/cart", authorize_default, cart_default);
 router9.use("/review", authorize_default, review_default);
 router9.use("/providers", provider_default);
-router9.use("/admin", authorize_default, authRole_default(["Admin"]), admin_default);
+router9.use("/admin", admin_default);
 router9.use("/categories", categories_default);
 var src_default = router9;
 

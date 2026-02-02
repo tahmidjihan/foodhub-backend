@@ -19,7 +19,7 @@ router.use('/orders', authorize, orders);
 router.use('/cart', authorize, cart);
 router.use('/review', authorize, review);
 router.use('/providers', provider);
-router.use('/admin', authorize, authRole(['Admin']), admin);
+router.use('/admin', admin);
 router.use('/categories', categories);
 
 export default router;

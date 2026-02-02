@@ -5,6 +5,7 @@ function getUsers(req: express.Request, res: express.Response) {
   prisma.user
     .findMany({})
     .then((users) => {
+      // console.log(users);
       res.status(200).json(users);
     })
     .catch((error) => {
