@@ -1,3 +1,8 @@
+// index.ts
+import express21 from "express";
+import dotenv2 from "dotenv";
+import cors from "cors";
+
 // src/index.ts
 import express20 from "express";
 
@@ -642,7 +647,31 @@ router9.use("/review", authorize_default, review_default);
 router9.use("/providers", provider_default);
 router9.use("/admin", authorize_default, authRole_default(["Admin"]), admin_default);
 router9.use("/categories", categories_default);
-var index_default = router9;
+var src_default = router9;
+
+// index.ts
+import { toNodeHandler } from "better-auth/node";
+dotenv2.config();
+var app = express21();
+app.use(
+  cors({
+    origin: process.env.ORIGIN_URL,
+    credentials: true
+  })
+);
+app.use(express21.json());
+var PORT = process.env.PORT || 8e3;
+app.all("/api/auth/*splat", toNodeHandler(auth));
+app.get("/", (req, res) => {
+  res.send("Hello, World!");
+});
+app.use("/api", src_default);
+var index_default = app;
+if (process.env.NODE_ENV !== "production") {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
 export {
   index_default as default
 };
