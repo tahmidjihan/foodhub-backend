@@ -27,7 +27,6 @@ app.get('/', (req, res) => {
 app.use('/api', api);
 
 // Export for Vercel serverless
-export default app;
 
 // Only start server if not in Vercel environment
 if (process.env.NODE_ENV !== 'production') {
@@ -35,3 +34,4 @@ if (process.env.NODE_ENV !== 'production') {
     console.log(`Server is running on port ${PORT}`);
   });
 }
+export default app;
