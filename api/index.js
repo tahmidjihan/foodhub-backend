@@ -231,10 +231,17 @@ var auth = betterAuth({
   trustedOrigins: [
     "http://localhost:5000",
     // dev
+    "https://foodhub-by-tahmid.netlify.app",
     "https://foodhub-frontend-sigma.vercel.app"
   ],
   emailAndPassword: {
     enabled: true
+  },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || "",
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || ""
+    }
   }
 });
 

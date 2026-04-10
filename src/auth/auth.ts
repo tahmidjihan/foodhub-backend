@@ -34,9 +34,16 @@ export const auth = betterAuth({
   secretKeyBase: process.env.SECRET_KEY_BASE || '',
   trustedOrigins: [
     'http://localhost:5000', // dev
+    'https://foodhub-by-tahmid.netlify.app',
     'https://foodhub-frontend-sigma.vercel.app',
   ],
   emailAndPassword: {
     enabled: true,
+  },
+  socialProviders: {
+    google: {
+      clientId: process.env.GOOGLE_CLIENT_ID || '',
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET || '',
+    },
   },
 });
