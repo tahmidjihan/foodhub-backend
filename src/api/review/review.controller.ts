@@ -31,4 +31,26 @@ const getByProvider = async (req: express.Request, res: express.Response) => {
     });
 };
 
-export default { create, getByProvider };
+const getByMeal = async (req: express.Request, res: express.Response) => {
+  const mealId = req.params.id;
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { MealId: mealId as string },
+      include: {
+        User: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+      },
+      orderBy: { id: 'desc' },
+    });
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: 'Internal Server Error', error });
+  }
+};
+
+export default { create, getByProvider, getByMeal };

@@ -7,5 +7,6 @@ router.get('/', (req, res) => {
 
 router.post('/', review.create);
 router.get('/provider/:id', review.getByProvider);
+router.get('/meal/:id', review.getByMeal);
 
 export default router;

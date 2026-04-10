@@ -8,6 +8,7 @@ import admin from './api/admin/index.js';
 import authRole from './middlewares/authRole.js';
 import review from './api/review/index.js';
 import categories from './api/categories/index.js';
+import dashboard from './api/dashboard/index.js';
 
 const router = express.Router();
 
@@ -21,5 +22,6 @@ router.use('/review', authorize, review);
 router.use('/providers', provider);
 router.use('/admin', admin);
 router.use('/categories', categories);
+router.use('/dashboard', authorize, dashboard);
 
 export default router;

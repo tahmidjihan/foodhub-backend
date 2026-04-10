@@ -1,20 +1,22 @@
 import express from 'express';
 import { prisma } from '../../../prisma.js';
 const getAll = (req: express.Request, res: express.Response) => {
-  const providerId = req.params.id as string;
+  const providerId = req.user?.id;
 
-  console.log(req);
+  if (!providerId) {
+    return res.status(401).json({ message: 'Unauthorized' });
+  }
+
   prisma.meal
     .findMany({
-      where: {},
+      where: { providerId: providerId },
+      include: { Category: true },
     })
     .then((meals) => {
       res.json(meals);
-      console.log(meals);
     })
     .catch((error) => {
       res.status(500).json({ message: 'Internal Server Error', error });
-      console.log(error);
     });
 };
 const getOne = async (req: express.Request, res: express.Response) => {
