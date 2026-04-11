@@ -7,5 +7,6 @@ const router = express.Router();
 router.post('/', controller.create);
 router.get('/', authorize, controller.getUserOrders);
 router.get('/provider/:id', authorize, controller.getProviderOrders);
+router.delete('/:id', authorize, controller.cancelOrder);
 
 export default router;

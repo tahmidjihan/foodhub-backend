@@ -5,6 +5,9 @@ dotenv.config();
 // If your Prisma file is located elsewhere, you can change the path
 import { prisma } from '../prisma.js';
 import { userAc } from 'better-auth/plugins/admin/access';
+
+const isProd = process.env.NODE_ENV === 'production';
+
 export const auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: 'postgresql', // or "mysql", "postgresql", ...etc
@@ -16,27 +19,35 @@ export const auth = betterAuth({
         defaultValue: 'Customer',
       },
     },
-    session: {
-      cookieCache: {
-        enabled: true,
-        maxAge: 5 * 60, // 5 minutes
-      },
-    },
-    advanced: {
-      cookiePrefix: 'better-auth',
-      useSecureCookies: process.env.NODE_ENV === 'production',
-      crossSubDomainCookies: {
-        enabled: false,
-      },
-      disableCSRFCheck: true, // Allow requests without Origin header (Postman, mobile apps, etc.)
+  },
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60, // 5 minutes
     },
   },
-  secretKeyBase: process.env.SECRET_KEY_BASE || '',
+  advanced: {
+    cookiePrefix: 'better-auth',
+    useSecureCookies: isProd,
+    crossSubDomainCookies: {
+      enabled: false, // Different domains (netlify.app and vercel.app), not subdomains
+    },
+    disableCSRFCheck: true, // Allow requests without Origin header (Postman, mobile apps, etc.)
+    defaultCookieAttributes: {
+      sameSite: isProd ? 'none' : 'lax',
+      secure: isProd,
+      path: '/',
+      // Don't set domain - let it default to the requesting domain
+    },
+  },
   trustedOrigins: [
-    'http://localhost:5000', // dev
+    process.env.FRONTEND_URL || 'http://localhost:5000',
+    process.env.ORIGIN_URL || 'http://localhost:5000',
+    'https://foodhub-frontend-blush.vercel.app',
     'https://foodhub-by-tahmid.netlify.app',
-    'https://foodhub-frontend-sigma.vercel.app',
-  ],
+    'http://localhost:3000',
+    'http://localhost:5000',
+  ].filter((url, index, self) => self.indexOf(url) === index), // Remove duplicates
   emailAndPassword: {
     enabled: true,
   },

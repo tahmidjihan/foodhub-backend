@@ -17,7 +17,7 @@ router.get('/', (req, res) => {
 });
 router.use('/meals', meals);
 router.use('/orders', authorize, orders);
-router.use('/cart', authorize, cart);
+router.use('/cart', cart); // authorize already applied in cart router
 router.use('/review', authorize, review);
 router.use('/providers', provider);
 router.use('/admin', admin);

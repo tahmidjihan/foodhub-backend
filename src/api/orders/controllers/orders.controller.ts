@@ -54,4 +54,35 @@ const getUserOrders = async (req: express.Request, res: express.Response) => {
     res.status(500).json({ message: 'Error retrieving orders', error });
   }
 };
-export default { create, getProviderOrders, getUserOrders };
+
+const cancelOrder = async (req: express.Request, res: express.Response) => {
+  const userId = req.user?.id;
+  const orderId = req.params.id as string;
+  
+  try {
+    // Verify the order belongs to the user and is pending
+    const order = await prisma.order.findFirst({
+      where: { 
+        id: orderId,
+        UserId: userId,
+        status: 'Pending'
+      }
+    });
+    
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found or cannot be cancelled' });
+    }
+    
+    // Delete the order
+    await prisma.order.delete({
+      where: { id: orderId }
+    });
+    
+    res.status(200).json({ message: 'Order cancelled successfully' });
+  } catch (error) {
+    console.error('Error cancelling order:', error);
+    res.status(500).json({ message: 'Error cancelling order', error });
+  }
+};
+
+export default { create, getProviderOrders, getUserOrders, cancelOrder };

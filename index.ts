@@ -11,6 +11,11 @@ dotenv.config();
 const app = express();
 const allowedOrigins = [
   process.env.ORIGIN_URL || 'http://localhost:5000',
+  process.env.FRONTEND_URL || 'http://localhost:5000',
+  'https://foodhub-frontend-blush.vercel.app',
+  'https://foodhub-by-tahmid.netlify.app',
+  'http://localhost:3000',
+  'http://localhost:5000',
 ].filter(Boolean); // Remove undefined values
 
 app.use(
@@ -19,11 +24,12 @@ app.use(
       // Allow requests with no origin (mobile apps, Postman, etc.)
       if (!origin) return callback(null, true);
 
-      // Check if origin is in allowedOrigins or matches Vercel preview pattern
+      // Check if origin is in allowedOrigins or matches Vercel/Netlify patterns
       const isAllowed =
         allowedOrigins.includes(origin) ||
         /^https:\/\/next-blog-client.*\.vercel\.app$/.test(origin) ||
-        /^https:\/\/.*\.vercel\.app$/.test(origin); // Any Vercel deployment
+        /^https:\/\/.*\.vercel\.app$/.test(origin) || // Any Vercel deployment
+        /^https:\/\/.*\.netlify\.app$/.test(origin); // Any Netlify deployment
 
       if (isAllowed) {
         callback(null, true);

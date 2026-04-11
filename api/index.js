@@ -1,10 +1,10 @@
 // index.ts
-import express21 from "express";
+import express23 from "express";
 import dotenv2 from "dotenv";
 import cors from "cors";
 
 // src/index.ts
-import express20 from "express";
+import express22 from "express";
 
 // src/api/meals/index.ts
 import express2 from "express";
@@ -83,37 +83,92 @@ var prisma = new PrismaClient({ adapter });
 var getOne = async (req, res) => {
   const mealId = req.params.id;
   try {
-    const meal = await prisma.meal.findUnique({ where: { id: mealId } });
-    if (meal) {
-      res.status(200).json(meal);
-    } else {
-      res.status(404).json({ message: "Meal not found" });
+    const meal = await prisma.meal.findUnique({
+      where: { id: mealId },
+      include: {
+        Category: true,
+        provider: {
+          select: {
+            id: true,
+            name: true,
+            image: true
+          }
+        },
+        reviews: {
+          include: {
+            User: {
+              select: {
+                id: true,
+                name: true,
+                image: true
+              }
+            }
+          },
+          orderBy: { id: "desc" }
+        }
+      }
+    });
+    if (!meal) {
+      return res.status(404).json({ message: "Meal not found" });
     }
+    const relatedMeals = await prisma.meal.findMany({
+      where: {
+        categoryId: meal.categoryId,
+        id: { not: mealId }
+      },
+      take: 4,
+      include: { Category: true }
+    });
+    res.status(200).json({ ...meal, relatedMeals });
   } catch (error) {
+    console.error("Error retrieving meal:", error);
     res.status(500).json({ message: "Error retrieving meal", error });
   }
 };
 var getAll = async (req, res) => {
-  const pagination = {
-    skip: req.query.skip,
-    take: req.query.take
-  };
-  if (!pagination) {
-    res.status(400).json({ message: "Pagination parameters are required" });
-    return;
-  }
-  await prisma.meal.findMany({
-    where: {},
-    take: parseInt(pagination.take),
-    skip: parseInt(pagination.skip),
-    include: { Category: true }
-  }).then((meals) => {
+  try {
+    const {
+      skip = "0",
+      take = "10",
+      category,
+      search,
+      type,
+      sortBy,
+      sortOrder
+    } = req.query;
+    const skipNum = Math.max(0, parseInt(skip) || 0);
+    const takeNum = Math.min(50, parseInt(take) || 10);
+    const where = {};
+    if (category && category !== "all") {
+      where.categoryId = category;
+    }
+    if (type && type !== "both") {
+      where.type = type;
+    }
+    if (search) {
+      where.OR = [
+        { name: { contains: search, mode: "insensitive" } },
+        { description: { contains: search, mode: "insensitive" } }
+      ];
+    }
+    let orderBy = { createdAt: "desc" };
+    if (sortBy) {
+      const order = sortOrder === "desc" ? "desc" : "asc";
+      if (sortBy === "price") orderBy = { price: order };
+      else if (sortBy === "name") orderBy = { name: order };
+    }
+    const meals = await prisma.meal.findMany({
+      where,
+      take: takeNum,
+      skip: skipNum,
+      include: { Category: true },
+      orderBy
+    });
     res.json(meals);
-    console.log(meals);
-  }).catch((error) => {
+  } catch (error) {
+    console.error("Error fetching meals:", error);
     res.status(500).json({ message: "Internal Server Error", error });
-    console.log(error);
-  });
+  }
 };
 async function getByProvider(req, res) {
   const id = req.params.id;
@@ -198,6 +253,7 @@ import { prismaAdapter } from "better-auth/adapters/prisma";
 import dotenv from "dotenv";
 import "better-auth/plugins/admin/access";
 dotenv.config();
+var isProd = process.env.NODE_ENV === "production";
 var auth = betterAuth({
   database: prismaAdapter(prisma, {
     provider: "postgresql"
@@ -209,31 +265,40 @@ var auth = betterAuth({
         type: "string",
         defaultValue: "Customer"
       }
-    },
-    session: {
-      cookieCache: {
-        enabled: true,
-        maxAge: 5 * 60
-        // 5 minutes
-      }
-    },
-    advanced: {
-      cookiePrefix: "better-auth",
-      useSecureCookies: process.env.NODE_ENV === "production",
-      crossSubDomainCookies: {
-        enabled: false
-      },
-      disableCSRFCheck: true
-      // Allow requests without Origin header (Postman, mobile apps, etc.)
     }
   },
-  secretKeyBase: process.env.SECRET_KEY_BASE || "",
+  session: {
+    cookieCache: {
+      enabled: true,
+      maxAge: 5 * 60
+      // 5 minutes
+    }
+  },
+  advanced: {
+    cookiePrefix: "better-auth",
+    useSecureCookies: isProd,
+    crossSubDomainCookies: {
+      enabled: false
+      // Different domains (netlify.app and vercel.app), not subdomains
+    },
+    disableCSRFCheck: true,
+    // Allow requests without Origin header (Postman, mobile apps, etc.)
+    defaultCookieAttributes: {
+      sameSite: isProd ? "lax" : "lax",
+      secure: isProd,
+      path: "/"
+      // Don't set domain - let it default to the requesting domain
+    }
+  },
   trustedOrigins: [
-    "http://localhost:5000",
-    // dev
+    process.env.FRONTEND_URL || "http://localhost:5000",
+    process.env.ORIGIN_URL || "http://localhost:5000",
+    "https://foodhub-frontend-blush.vercel.app",
     "https://foodhub-by-tahmid.netlify.app",
-    "https://foodhub-frontend-sigma.vercel.app"
-  ],
+    "http://localhost:3000",
+    "http://localhost:5000"
+  ].filter((url, index, self) => self.indexOf(url) === index),
+  // Remove duplicates
   emailAndPassword: {
     enabled: true
   },
@@ -251,9 +316,15 @@ async function authorize(req, res, next) {
     next();
     return;
   }
+  console.log("[Authorize] Cookie header:", req.headers.cookie || "NONE");
+  console.log("[Authorize] Headers:", JSON.stringify(req.headers, null, 2));
   const session = await auth.api.getSession({
     headers: fromNodeHeaders(req.headers)
   });
+  console.log(
+    "[Authorize] Session:",
+    session ? `Found user: ${session.user.email}` : "NO SESSION"
+  );
   if (session) {
     req.user = session.user;
     next();
@@ -327,6 +398,7 @@ var cart_controller_default = { create: create2, deleteOne, getAll: getAll2, get
 
 // src/api/cart/index.ts
 var router3 = express7.Router();
+router3.use(authorize_default);
 router3.post("/", cart_controller_default.create);
 router3.get("/", cart_controller_default.getAll);
 router3.delete("/:id", cart_controller_default.deleteOne);
@@ -417,16 +489,17 @@ import express12 from "express";
 // src/api/provider/meals/meals.controller.ts
 import "express";
 var getAll5 = (req, res) => {
-  const providerId = req.params.id;
-  console.log(req);
+  const providerId = req.user?.id;
+  if (!providerId) {
+    return res.status(401).json({ message: "Unauthorized" });
+  }
   prisma.meal.findMany({
-    where: {}
+    where: { providerId },
+    include: { Category: true }
   }).then((meals) => {
     res.json(meals);
-    console.log(meals);
   }).catch((error) => {
     res.status(500).json({ message: "Internal Server Error", error });
-    console.log(error);
   });
 };
 var getOne4 = async (req, res) => {
@@ -497,10 +570,10 @@ var authRole_default = authRole;
 // src/api/provider/meals/index.ts
 var router4 = express12.Router();
 router4.post("/", authorize_default, authRole_default(["Provider"]), meals_controller_default2.create);
-router4.get("/:id", meals_controller_default2.getAll);
+router4.get("/", authorize_default, authRole_default(["Provider"]), meals_controller_default2.getAll);
+router4.get("/:id", meals_controller_default2.getOne);
 router4.put("/:id", authorize_default, authRole_default(["Provider"]), meals_controller_default2.updateOne);
 router4.delete("/:id", authorize_default, authRole_default(["Provider"]), meals_controller_default2.deleteOne);
-router4.get("/:id", meals_controller_default2.getOne);
 var meals_default2 = router4;
 
 // src/api/provider/index.ts
@@ -525,7 +598,6 @@ import express15 from "express";
 import "express";
 function getUsers(req, res) {
   prisma.user.findMany({}).then((users) => {
-    console.log(users);
     res.status(200).json(users);
   }).catch((error) => {
     res.status(500).json({ message: "Error retrieving users", error });
@@ -565,6 +637,7 @@ var admin_controller_default = { getUsers, deleteUser, updateUser, getAllOrders 
 
 // src/api/admin/index.ts
 var router6 = express15.Router();
+router6.use(authorize_default, authRole_default("Admin"));
 router6.get("/users", admin_controller_default.getUsers);
 router6.delete("/users/:id", admin_controller_default.deleteUser);
 router6.put("/users/:id", admin_controller_default.updateUser);
@@ -600,7 +673,28 @@ var getByProvider2 = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error });
   });
 };
-var review_controller_default = { create: create4, getByProvider: getByProvider2 };
+var getByMeal = async (req, res) => {
+  const mealId = req.params.id;
+  try {
+    const reviews = await prisma.review.findMany({
+      where: { MealId: mealId },
+      include: {
+        User: {
+          select: {
+            id: true,
+            name: true,
+            image: true
+          }
+        }
+      },
+      orderBy: { id: "desc" }
+    });
+    res.json(reviews);
+  } catch (error) {
+    res.status(500).json({ message: "Internal Server Error", error });
+  }
+};
+var review_controller_default = { create: create4, getByProvider: getByProvider2, getByMeal };
 
 // src/api/review/index.ts
 var router7 = express17.Router();
@@ -609,6 +703,7 @@ router7.get("/", (req, res) => {
 });
 router7.post("/", review_controller_default.create);
 router7.get("/provider/:id", review_controller_default.getByProvider);
+router7.get("/meal/:id", review_controller_default.getByMeal);
 var review_default = router7;
 
 // src/api/categories/index.ts
@@ -659,36 +754,202 @@ var categories_controller_default = { getAll: getAll6, create: create5, deleteOn
 // src/api/categories/index.ts
 var router8 = express19.Router();
 router8.get("/", categories_controller_default.getAll);
-router8.post("/", categories_controller_default.create);
-router8.delete("/:id", categories_controller_default.deleteOne);
+router8.post("/", authorize_default, authRole_default("Admin"), categories_controller_default.create);
+router8.delete("/:id", authorize_default, authRole_default("Admin"), categories_controller_default.deleteOne);
 var categories_default = router8;
 
+// src/api/dashboard/index.ts
+import express21 from "express";
+
+// src/api/dashboard/controllers/dashboard.controller.ts
+import "express";
+var getStats = async (req, res) => {
+  try {
+    const [
+      totalOrders,
+      completedOrders,
+      pendingOrders,
+      inProgressOrders,
+      cancelledOrders,
+      totalMeals,
+      totalProviders,
+      totalCustomers,
+      revenueData
+    ] = await Promise.all([
+      prisma.order.count(),
+      prisma.order.count({ where: { status: "Completed" } }),
+      prisma.order.count({ where: { status: "Pending" } }),
+      prisma.order.count({ where: { status: "InProgress" } }),
+      prisma.order.count({ where: { status: "Cancelled" } }),
+      prisma.meal.count(),
+      prisma.user.count({ where: { role: "Provider" } }),
+      prisma.user.count({ where: { role: "Customer" } }),
+      prisma.order.aggregate({
+        _sum: { total: true },
+        where: { status: "Completed" }
+      })
+    ]);
+    res.json({
+      totalOrders,
+      totalSpending: revenueData._sum.total || 0,
+      activeOrders: pendingOrders + inProgressOrders,
+      completedOrders,
+      cancelledOrders,
+      pendingOrders,
+      inProgressOrders,
+      totalMeals,
+      totalProviders,
+      totalCustomers
+    });
+  } catch (error) {
+    console.error("Error fetching dashboard stats:", error);
+    res.status(500).json({ message: "Error retrieving dashboard stats", error });
+  }
+};
+var getChartData = async (req, res) => {
+  try {
+    const { days = "30" } = req.query;
+    const daysNum = parseInt(days);
+    const startDate = /* @__PURE__ */ new Date();
+    startDate.setDate(startDate.getDate() - daysNum);
+    const orders = await prisma.order.findMany({
+      where: {
+        createdAt: {
+          gte: startDate
+        }
+      },
+      orderBy: {
+        createdAt: "asc"
+      },
+      select: {
+        createdAt: true,
+        total: true
+      }
+    });
+    const dateMap = /* @__PURE__ */ new Map();
+    for (let i = 0; i < daysNum; i++) {
+      const date = /* @__PURE__ */ new Date();
+      date.setDate(date.getDate() - (daysNum - 1 - i));
+      const dateStr = date.toISOString().split("T")[0];
+      dateMap.set(dateStr, { orders: 0, revenue: 0 });
+    }
+    orders.forEach((order) => {
+      const dateStr = order.createdAt.toISOString().split("T")[0];
+      const existing = dateMap.get(dateStr);
+      if (existing) {
+        existing.orders += 1;
+        existing.revenue += order.total;
+      }
+    });
+    const chartData = Array.from(dateMap.entries()).map(([date, data]) => ({
+      date,
+      orders: data.orders,
+      revenue: Math.round(data.revenue * 100) / 100
+    }));
+    res.json(chartData);
+  } catch (error) {
+    console.error("Error fetching chart data:", error);
+    res.status(500).json({ message: "Error retrieving chart data", error });
+  }
+};
+var getStatusDistribution = async (req, res) => {
+  try {
+    const [pending, inProgress, completed, cancelled] = await Promise.all([
+      prisma.order.count({ where: { status: "Pending" } }),
+      prisma.order.count({ where: { status: "InProgress" } }),
+      prisma.order.count({ where: { status: "Completed" } }),
+      prisma.order.count({ where: { status: "Cancelled" } })
+    ]);
+    res.json([
+      { name: "Pending", value: pending, color: "#fbbf24" },
+      { name: "In Progress", value: inProgress, color: "#60a5fa" },
+      { name: "Completed", value: completed, color: "#008148" },
+      { name: "Cancelled", value: cancelled, color: "#ef4444" }
+    ]);
+  } catch (error) {
+    console.error("Error fetching status distribution:", error);
+    res.status(500).json({ message: "Error retrieving status distribution", error });
+  }
+};
+var getRecentOrders = async (req, res) => {
+  try {
+    const { limit = "5" } = req.query;
+    const limitNum = Math.min(parseInt(limit), 20);
+    const orders = await prisma.order.findMany({
+      take: limitNum,
+      orderBy: { createdAt: "desc" },
+      include: {
+        Meal: {
+          select: {
+            id: true,
+            name: true,
+            image: true,
+            price: true
+          }
+        },
+        User: {
+          select: {
+            id: true,
+            name: true,
+            email: true
+          }
+        }
+      }
+    });
+    res.json(orders);
+  } catch (error) {
+    console.error("Error fetching recent orders:", error);
+    res.status(500).json({ message: "Error retrieving recent orders", error });
+  }
+};
+var dashboard_controller_default = {
+  getStats,
+  getChartData,
+  getStatusDistribution,
+  getRecentOrders
+};
+
+// src/api/dashboard/index.ts
+var router9 = express21.Router();
+router9.get("/stats", dashboard_controller_default.getStats);
+router9.get("/chart-data", dashboard_controller_default.getChartData);
+router9.get("/status-distribution", dashboard_controller_default.getStatusDistribution);
+router9.get("/recent-orders", dashboard_controller_default.getRecentOrders);
+var dashboard_default = router9;
+
 // src/index.ts
-var router9 = express20.Router();
-router9.get("/", (req, res) => {
+var router10 = express22.Router();
+router10.get("/", (req, res) => {
   res.send("API Root");
 });
-router9.use("/meals", meals_default);
-router9.use("/orders", authorize_default, orders_default);
-router9.use("/cart", authorize_default, cart_default);
-router9.use("/review", authorize_default, review_default);
-router9.use("/providers", provider_default);
-router9.use("/admin", admin_default);
-router9.use("/categories", categories_default);
-var src_default = router9;
+router10.use("/meals", meals_default);
+router10.use("/orders", authorize_default, orders_default);
+router10.use("/cart", cart_default);
+router10.use("/review", authorize_default, review_default);
+router10.use("/providers", provider_default);
+router10.use("/admin", admin_default);
+router10.use("/categories", categories_default);
+router10.use("/dashboard", authorize_default, dashboard_default);
+var src_default = router10;
 
 // index.ts
 import { toNodeHandler } from "better-auth/node";
 dotenv2.config();
-var app = express21();
+var app = express23();
 var allowedOrigins = [
-  process.env.ORIGIN_URL || "http://localhost:5000"
+  process.env.ORIGIN_URL || "http://localhost:5000",
+  process.env.FRONTEND_URL || "http://localhost:5000",
+  "https://foodhub-frontend-blush.vercel.app",
+  "https://foodhub-by-tahmid.netlify.app",
+  "http://localhost:3000",
+  "http://localhost:5000"
 ].filter(Boolean);
 app.use(
   cors({
     origin: (origin, callback) => {
       if (!origin) return callback(null, true);
-      const isAllowed = allowedOrigins.includes(origin) || /^https:\/\/next-blog-client.*\.vercel\.app$/.test(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin);
+      const isAllowed = allowedOrigins.includes(origin) || /^https:\/\/next-blog-client.*\.vercel\.app$/.test(origin) || /^https:\/\/.*\.vercel\.app$/.test(origin) || // Any Vercel deployment
+      /^https:\/\/.*\.netlify\.app$/.test(origin);
       if (isAllowed) {
         callback(null, true);
       } else {
@@ -701,7 +962,7 @@ app.use(
     exposedHeaders: ["Set-Cookie"]
   })
 );
-app.use(express21.json());
+app.use(express23.json());
 var PORT = process.env.PORT || 8e3;
 app.all("/api/auth/*splat", toNodeHandler(auth));
 app.get("/", (req, res) => {
